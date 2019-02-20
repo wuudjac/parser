@@ -14,8 +14,13 @@
 package ast_test
 
 import (
+	"strings"
+
 	. "github.com/pingcap/check"
+	"github.com/pingcap/parser"
+	"github.com/pingcap/parser/ast"
 	. "github.com/pingcap/parser/ast"
+	driver "github.com/pingcap/tidb/types/parser_driver"
 )
 
 var _ = Suite(&testFunctionsSuite{})
@@ -119,6 +124,64 @@ func (ts *testFunctionsSuite) TestAggregateFuncExprRestore(c *C) {
 		return node.(*SelectStmt).Fields.Fields[0].Expr
 	}
 	RunNodeRestoreTest(c, testCases, "select %s", extractNodeFunc)
+}
+
+func (ts *testFunctionsSuite) TestConvert(c *C) {
+	// Test case for CONVERT(expr USING transcoding_name).
+	cases := []struct {
+		SQL          string
+		CharsetName  string
+		ErrorMessage string
+	}{
+		{`SELECT CONVERT("abc" USING "latin1")`, "latin1", ""},
+		{`SELECT CONVERT("abc" USING latin1)`, "latin1", ""},
+		{`SELECT CONVERT("abc" USING "binary")`, "binary", ""},
+		{`SELECT CONVERT("abc" USING binary)`, "binary", ""},
+		{`SELECT CONVERT(a USING a)`, "", `.*Unknown charset.*`}, // TiDB issue #4436.
+		{`SELECT CONVERT("abc" USING CONCAT("utf", "8"))`, "", `.*Unknown charset.*`},
+	}
+	for _, testCase := range cases {
+		stmt, err := parser.New().ParseOneStmt(testCase.SQL, "", "")
+		if testCase.ErrorMessage != "" {
+			c.Assert(err, ErrorMatches, testCase.ErrorMessage)
+			continue
+		}
+		c.Assert(err, IsNil)
+
+		st := stmt.(*ast.SelectStmt)
+		expr := st.Fields.Fields[0].Expr.(*FuncCallExpr)
+		charsetArg := expr.Args[1].(*driver.ValueExpr)
+		c.Assert(strings.ToLower(charsetArg.GetString()), Equals, testCase.CharsetName)
+	}
+}
+
+func (ts *testFunctionsSuite) TestChar(c *C) {
+	// Test case for CHAR(N USING charset_name)
+	cases := []struct {
+		SQL          string
+		CharsetName  string
+		ErrorMessage string
+	}{
+		{`SELECT CHAR("abc" USING "latin1")`, "latin1", ""},
+		{`SELECT CHAR("abc" USING latin1)`, "latin1", ""},
+		{`SELECT CHAR("abc" USING "binary")`, "binary", ""},
+		{`SELECT CHAR("abc" USING binary)`, "binary", ""},
+		{`SELECT CHAR(a USING a)`, "", `.*Unknown charset.*`},
+		{`SELECT CHAR("abc" USING CONCAT("utf", "8"))`, "", `.*Unknown charset.*`},
+	}
+	for _, testCase := range cases {
+		stmt, err := parser.New().ParseOneStmt(testCase.SQL, "", "")
+		if testCase.ErrorMessage != "" {
+			c.Assert(err, ErrorMatches, testCase.ErrorMessage)
+			continue
+		}
+		c.Assert(err, IsNil)
+
+		st := stmt.(*ast.SelectStmt)
+		expr := st.Fields.Fields[0].Expr.(*FuncCallExpr)
+		charsetArg := expr.Args[1].(*driver.ValueExpr)
+		c.Assert(strings.ToLower(charsetArg.GetString()), Equals, testCase.CharsetName)
+	}
 }
 
 func (ts *testDMLSuite) TestWindowFuncExprRestore(c *C) {
