@@ -302,6 +302,7 @@ var tokenMap = map[string]int{
 	"HASH":                     hash,
 	"HASH_AGG":                 hintHASHAGG,
 	"HASH_JOIN":                hintHJ,
+	"HASH_JOIN_HASHER":         hintHJHasher,
 	"HAVING":                   having,
 	"HIGH_PRIORITY":            highPriority,
 	"HISTORY":                  history,

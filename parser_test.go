@@ -2868,6 +2868,23 @@ func (s *testParserSuite) TestOptimizerHints(c *C) {
 	c.Assert(hints[1].Tables[0].TableName.L, Equals, "t3")
 	c.Assert(hints[1].Tables[1].TableName.L, Equals, "t4")
 
+	// Test HASH_JOIN_HASHER
+	stmt, _, err = parser.Parse("select /*+ HASH_JOIN_HASHER(t1, T2), hash_join_hasher(t3, t4) */ c1, c2 from t1, t2 where t1.c1 = t2.c1", "", "")
+	c.Assert(err, IsNil)
+	selectStmt = stmt[0].(*ast.SelectStmt)
+
+	hints = selectStmt.TableHints
+	c.Assert(hints, HasLen, 2)
+	c.Assert(hints[0].HintName.L, Equals, "hash_join_hasher")
+	c.Assert(hints[0].Tables, HasLen, 2)
+	c.Assert(hints[0].Tables[0].TableName.L, Equals, "t1")
+	c.Assert(hints[0].Tables[1].TableName.L, Equals, "t2")
+
+	c.Assert(hints[1].HintName.L, Equals, "hash_join_hasher")
+	c.Assert(hints[1].Tables, HasLen, 2)
+	c.Assert(hints[1].Tables[0].TableName.L, Equals, "t3")
+	c.Assert(hints[1].Tables[1].TableName.L, Equals, "t4")
+
 	// Test MAX_EXECUTION_TIME
 	queries := []string{
 		"SELECT /*+ MAX_EXECUTION_TIME(1000) */ * FROM t1 INNER JOIN t2 where t1.c1 = t2.c1",

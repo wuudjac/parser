@@ -587,6 +587,7 @@ import (
 	hintHJ		"HASH_JOIN"
 	hintSMJ		"SM_JOIN"
 	hintINLJ	"INL_JOIN"
+	hintHJHasher	"HASH_JOIN_HASHER"
 	hintHASHAGG	"HASH_AGG"
 	hintSTREAMAGG	"STREAM_AGG"
 	hintUseIndexMerge	"USE_INDEX_MERGE"
@@ -3577,8 +3578,8 @@ DropTableStmt:
 
 OptTemporary:
 	  /* empty */ { $$ = false; }
-	| "TEMPORARY" 
-	{ 
+	| "TEMPORARY"
+	{
 		$$ = true
 		yylex.AppendError(yylex.Errorf("TiDB doesn't support TEMPORARY TABLE, TEMPORARY will be parsed but ignored."))
 		parser.lastErrorAsWarn()
@@ -4352,7 +4353,7 @@ UnReservedKeyword:
 
 TiDBKeyword:
  "ADMIN" | "AGG_TO_COP" |"BUCKETS" | "CANCEL" | "CMSKETCH" | "DDL" | "DEPTH" | "DRAINER" | "JOBS" | "JOB" | "NODE_ID" | "NODE_STATE" | "PUMP" | "SAMPLES" | "STATS" | "STATS_META" | "STATS_HISTOGRAMS" | "STATS_BUCKETS" | "STATS_HEALTHY" | "TIDB"
-| "HASH_JOIN" | "SM_JOIN" | "INL_JOIN" | "HASH_AGG" | "STREAM_AGG" | "USE_INDEX_MERGE" | "NO_INDEX_MERGE" | "USE_TOJA" | "ENABLE_PLAN_CACHE" | "USE_PLAN_CACHE"
+| "HASH_JOIN" | "SM_JOIN" | "INL_JOIN" | "HASH_JOIN_HASHER" | "HASH_AGG" | "STREAM_AGG" | "USE_INDEX_MERGE" | "NO_INDEX_MERGE" | "USE_TOJA" | "ENABLE_PLAN_CACHE" | "USE_PLAN_CACHE"
 | "READ_CONSISTENT_REPLICA" | "READ_FROM_STORAGE" | "QB_NAME" | "QUERY_TYPE" | "MEMORY_QUOTA" | "OLAP" | "OLTP" | "TOPN" | "TIKV" | "TIFLASH" | "SPLIT" | "OPTIMISTIC" | "PESSIMISTIC" | "WIDTH" | "REGIONS"
 
 NotKeywordToken:
@@ -6686,6 +6687,10 @@ TableOptimizerHintOpt:
 	{
 		$$ = &ast.TableOptimizerHint{HintName: model.NewCIStr($1), QBName: $3.(model.CIStr), Tables: $4.([]ast.HintTable)}
 	}
+|	hintHJHasher '(' QueryBlockOpt HintTableList ')'
+	{
+		$$ = &ast.TableOptimizerHint{HintName: model.NewCIStr($1), QBName: $3.(model.CIStr), Tables: $4.([]ast.HintTable)}
+	}
 |	hintUseIndexMerge '(' QueryBlockOpt HintTable IndexNameList ')'
 	{
 		$$ = &ast.TableOptimizerHint{
@@ -6773,7 +6778,6 @@ HintStorageTypeAndTable:
 			Tables:    $3.([]ast.HintTable),
 		}
 	}
-	
 QueryBlockOpt:
 	{
 		$$ = model.NewCIStr("")

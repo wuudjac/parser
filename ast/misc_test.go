@@ -223,6 +223,7 @@ func (ts *testMiscSuite) TestTableOptimizerHintRestore(c *C) {
 		{"SM_JOIN(t1,t2)", "SM_JOIN(`t1`, `t2`)"},
 		{"INL_JOIN(t1,t2)", "INL_JOIN(`t1`, `t2`)"},
 		{"HASH_JOIN(t1,t2)", "HASH_JOIN(`t1`, `t2`)"},
+		{"HASH_JOIN_HASHER(t1,t2)", "HASH_JOIN_HASHER(`t1`, `t2`)"},
 		{"MAX_EXECUTION_TIME(3000)", "MAX_EXECUTION_TIME(3000)"},
 		{"MAX_EXECUTION_TIME(@sel1 3000)", "MAX_EXECUTION_TIME(@`sel1` 3000)"},
 		{"USE_INDEX_MERGE(t1 c1)", "USE_INDEX_MERGE(`t1` `c1`)"},
